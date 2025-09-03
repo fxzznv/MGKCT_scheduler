@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.0-alpine
+    container_name: mgkct_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: .  # ОБЩИЙ КОНТЕКСТ (корневая директория)
+      dockerfile: telegram_bot/Dockerfile
+    container_name: telegram-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    working_dir: /app/telegram_bot
+
+  requests_polling:
+    build:
+      context: .  # ОБЩИЙ КОНТЕКСТ (корневая директория)
+      dockerfile: mgct_schedule/Dockerfile
+    container_name: schedule-scheduler
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    working_dir: /app/mgct_schedule
+
+volumes:
+  redis_data:
+    name: redis_data
+
+networks:
+  app-network:
+    driver: bridge
