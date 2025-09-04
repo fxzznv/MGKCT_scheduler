@@ -7,7 +7,8 @@ from aiogram.filters import Command
 from aiogram import F
 from dotenv import load_dotenv
 
-from telegram_bot.schedule_extracting import get_week_schedule, get_daily_schedule
+from mgct_schedule.utils.rediss import save_chat_id
+from telegram_bot.schedule_extracting import extract_week_schedule, extract_daily_schedule
 
 load_dotenv()
 # Токен вашего бота
@@ -35,35 +36,42 @@ menu_keyboard = ReplyKeyboardMarkup(
 # Обработчик команды /start
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
+    chat_id = int(message.chat.id)
+    save_chat_id(chat_id)
     await message.answer(
-        "Привет! Я бот для просмотра расписания.\n"
-        "Выберите опцию из меню ниже:",
+        "динаху",
         reply_markup=menu_keyboard
     )
 
 # Обработчик кнопки "Расписание на день"
 @dp.message(F.text == "📅 Расписание на день")
 async def schedule_day(message: types.Message):
-    day = get_daily_schedule()
-    print(day)
-    await message.answer(
-        text=day,
-        parse_mode="HTML"
-    )
+    day = extract_daily_schedule()
+    if day == '':
+        await message.answer(text="Вернуло пустое значение почему-то. Пинганите @oeeeag")
+    else:
+        print(day)
+        await message.answer(
+            text=day,
+            parse_mode="HTML"
+        )
 # Обработчик кнопки "Расписание на неделю"
 @dp.message(F.text == "📆 Расписание на неделю")
 async def schedule_week(message: types.Message):
-    week = get_week_schedule()
-    print(week)
-    await message.answer(
-        text=week,
-        parse_mode="HTML"
-    )
+    week = extract_week_schedule()
+    if week == '':
+        await message.answer(text="Вернуло пустое значение почему-то. Пинганите @oeeeag")
+    else:
+        print(week)
+        await message.answer(
+            text=week,
+            parse_mode="HTML"
+        )
 
 # Обработчик любых других сообщений
 @dp.message()
 async def echo(message: types.Message):
-    await message.answer("Пожалуйста, используйте кнопки меню для навигации")
+    await message.answer("беее дяжвявсжфубйцдудж 654у654фыаджвфвбю, бутерброд с дерева сорви да поешь")
 
 async def main():
     await dp.start_polling(bot)

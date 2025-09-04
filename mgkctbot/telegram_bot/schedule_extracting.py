@@ -3,7 +3,7 @@ import os
 import redis
 
 
-def get_week_schedule() -> str:
+def extract_week_schedule() -> str:
     """
     Получение расписания недели из Redis (из хэша)
     """
@@ -13,11 +13,11 @@ def get_week_schedule() -> str:
 
     # Получаем значение из поля schedule_week хэша
     schedule_week = r.hget("weekSchedule", "schedule_week")
+    print(repr(schedule_week))
+    return schedule_week
 
-    return schedule_week or "Расписание недели не найдено"
 
-
-def get_daily_schedule() -> str:
+def extract_daily_schedule() -> str:
     """
     Получение дневного расписания из Redis (из хэша)
     """
@@ -29,4 +29,9 @@ def get_daily_schedule() -> str:
     # Получаем значение из поля schedule_day хэша
     schedule_day = r.hget("schedule_daily", "schedule_day")
 
-    return schedule_day or "Дневное расписание не найдено"
+    return schedule_day
+
+if __name__ == "__main__":
+    print(extract_week_schedule())
+
+    print(extract_daily_schedule())

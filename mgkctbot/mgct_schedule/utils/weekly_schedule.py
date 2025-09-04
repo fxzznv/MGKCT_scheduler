@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 
 from mgct_schedule.utils.rediss import push_weekly_schedule
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def get_schedule():
     # Получаем HTML с сайта

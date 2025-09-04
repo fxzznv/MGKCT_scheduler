@@ -1,7 +1,7 @@
 import re
 import redis
 
-def extract_day_schedule(final_text: str, target_date: str) -> str:
+def get_day_schedule(final_text: str, target_date: str) -> str:
     # Normalize the target date to match the format in the text
     target_date = target_date.strip().replace(',', '.').replace('/', '.')
     if not re.match(r'\d{2}\.\d{2}\.\d{4}', target_date):

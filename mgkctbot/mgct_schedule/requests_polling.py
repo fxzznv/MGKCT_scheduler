@@ -2,9 +2,14 @@ import time
 from datetime import datetime, timedelta
 from pytz import timezone
 
-from mgct_schedule.utils.rediss import push_weekly_schedule, extract_n_push_daily_schedule
+from mgct_schedule.utils.rediss import push_weekly_schedule, extract_n_push_daily_schedule, get_all_chat_ids
 from mgct_schedule.utils.weekly_schedule import get_schedule
+from telegram_bot.schedule_extracting import extract_week_schedule
+from aiogram import Bot
 
+
+API_TOKEN = "8192247154:AAE2mFLGN__f9kA3IQYyJayZZEzodje_1i8"   # или через os.getenv
+bot = Bot(token=API_TOKEN)
 
 def run_scheduler():
     msk = timezone('Europe/Moscow')
@@ -16,12 +21,27 @@ def run_scheduler():
         current_date = now.date()
 
         # 1. Обновление еженедельного расписания каждые 6 часов
-        if (now - last_weekly_update) >= timedelta(hours=6):
-            print(f"[{now}] Обновление еженедельного расписания и текущего дня")
-            actual_schedule = get_schedule()
-            push_weekly_schedule(actual_schedule)  # Сохраняем еженедельное в Redis
+        if (now - last_weekly_update) >= timedelta(hours=3):
 
-            # 2. Сразу после: обновляем ежедневное для сегодняшнего дня
+            actual_schedule = get_schedule()
+            print(f"[{now}] Обновление еженедельного расписания и текущего дня")
+            extracted_schedule = extract_week_schedule()
+
+            if actual_schedule != extracted_schedule:
+                # Сохраняем новое расписание
+                push_weekly_schedule(actual_schedule)
+
+                # Уведомляем через бота
+                try:
+                    chat_ids = get_all_chat_ids()
+                    for chat_id in chat_ids:
+                        bot.loop.create_task(
+                            bot.send_message(chat_id, "📆 Получено новое расписание")
+                        )
+                except Exception as e:
+                    print(f"Ошибка при отправке сообщения: {e}")
+
+            # В любом случае обновляем ежедневное для текущего дня
             today_str = now.strftime('%d.%m.%Y')
             extract_n_push_daily_schedule(today_str)
 
@@ -37,8 +57,9 @@ def run_scheduler():
 
         # 4. Сброс в 00:00: обновляем для текущего дня и сбрасываем флаг для next day
         if now.hour == 0 and now.minute < 5:
-            print(f"[{now}] Сброс и обновление расписания на текущий день")
+            print(f"[{now}] Сброс и обновление юблоррасписания на текущий день")
             today_str = now.strftime('%d.%m.%Y')
+
             extract_n_push_daily_schedule(today_str)
             last_next_day_update = None  # Сброс, чтобы в новых сутках обновление next day произошло только после 17:00
 
