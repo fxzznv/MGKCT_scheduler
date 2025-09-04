@@ -1,5 +1,7 @@
 import time
 from datetime import datetime, timedelta
+
+import requests
 from pytz import timezone
 
 from mgct_schedule.utils.rediss import push_weekly_schedule, extract_n_push_daily_schedule, get_all_chat_ids
@@ -30,16 +32,7 @@ def run_scheduler():
             if actual_schedule != extracted_schedule:
                 # Сохраняем новое расписание
                 push_weekly_schedule(actual_schedule)
-
-                # Уведомляем через бота
-                try:
-                    chat_ids = get_all_chat_ids()
-                    for chat_id in chat_ids:
-                        bot.loop.create_task(
-                            bot.send_message(chat_id, "📆 Получено новое расписание")
-                        )
-                except Exception as e:
-                    print(f"Ошибка при отправке сообщения: {e}")
+                requests.post("http://bot:5000/make_notification")
 
             # В любом случае обновляем ежедневное для текущего дня
             today_str = now.strftime('%d.%m.%Y')
@@ -57,7 +50,7 @@ def run_scheduler():
 
         # 4. Сброс в 00:00: обновляем для текущего дня и сбрасываем флаг для next day
         if now.hour == 0 and now.minute < 5:
-            print(f"[{now}] Сброс и обновление юблоррасписания на текущий день")
+            print(f"[{now}] Сброс и обновление расписания на текущий день")
             today_str = now.strftime('%d.%m.%Y')
 
             extract_n_push_daily_schedule(today_str)

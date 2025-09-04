@@ -11,10 +11,7 @@ port = int(os.getenv('REDIS_PORT', 6379))
 r = redis.Redis(host=host, port=port, db=0, decode_responses=True)
 
 def push_weekly_schedule(schedule_text: str) -> bool:
-
     try:
-
-        # проверяем соединение
         r.ping()
     except Exception as e:
         print("Не удалось подключиться к Redis:", e)
@@ -48,7 +45,7 @@ def extract_n_push_daily_schedule(target_date: str) -> bool:
         # Extract the daily schedule for the target date
         daily_schedule = get_day_schedule(schedule_text, target_date)
         if "No schedule found" in daily_schedule:
-            print(daily_schedule)
+            # print(daily_schedule)
             return False
 
         # Save the daily schedule to Redis

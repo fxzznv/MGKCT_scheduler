@@ -16,6 +16,9 @@ USER botuser
 # Добавляем корневую директорию в PYTHONPATH
 ENV PYTHONPATH=/app
 
+# Экспонируем порт для Flask (по умолчанию 5000)
+EXPOSE 5000
+
 # Запускаем из нужной директории
 WORKDIR /app/telegram_bot
 CMD ["python", "bot.py"]

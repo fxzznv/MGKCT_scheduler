@@ -13,7 +13,7 @@ def extract_week_schedule() -> str:
 
     # Получаем значение из поля schedule_week хэша
     schedule_week = r.hget("weekSchedule", "schedule_week")
-    print(repr(schedule_week))
+    # print(repr(schedule_week))
     return schedule_week
 
 

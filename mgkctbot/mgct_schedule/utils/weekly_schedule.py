@@ -162,10 +162,28 @@ def get_schedule():
     final_text = "\n".join(output_lines)
 
     # (опционально) показать результат в консоли
-    print(final_text)
+    # print(final_text)
 
-    push_weekly_schedule(final_text)
-    return final_text
+    def clean_final_text(text: str) -> str:
+        # обработаем построчно: схлопываем подряд идущие '|' и убираем '|' по краям строки
+        out_lines = []
+        for line in text.splitlines():
+            # заменим NBSP
+            line = line.replace('\xa0', ' ')
+            # схлопываем подряд идущие '|' с любыми пробелами вокруг в один ' | '
+            line = re.sub(r'(?:\s*\|\s*)+', ' | ', line)
+            # убираем ведущие/замыкающие '|' и пробелы
+            line = re.sub(r'^\s*\|\s*', '', line)
+            line = re.sub(r'\s*\|\s*$', '', line)
+            # убираем лишние пробелы
+            line = re.sub(r'\s+', ' ', line).rstrip()
+            out_lines.append(line)
+        return "\n".join(out_lines)
+
+    cleaned_final = clean_final_text(final_text)
+    # print(cleaned_final)
+    push_weekly_schedule(cleaned_final)
+    return cleaned_final
 
 if __name__ == "__main__":
     actual_schedule = get_schedule()
