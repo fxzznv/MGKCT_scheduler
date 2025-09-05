@@ -28,6 +28,24 @@ def push_weekly_schedule(schedule_text: str) -> bool:
         print("Ошибка при записи в Redis:", e)
         return False
 
+def push_previous_weekly_schedule(schedule_text: str) -> bool:
+    try:
+        r.ping()
+    except Exception as e:
+        print("Не удалось подключиться к Redis:", e)
+        return False
+
+    try:
+        pipe = r.pipeline()
+        # записываем в hash weekSchedule поле previous_schedule_week
+        pipe.hset("weekSchedule", mapping={"previous_schedule_week": schedule_text})
+        pipe.execute()
+        print("Сохранено в Redis: ключ 'weekSchedule', поле 'previous_schedule_week'")
+        return True
+    except Exception as e:
+        print("Ошибка при записи в Redis:", e)
+        return False
+
 def extract_n_push_daily_schedule(target_date: str) -> bool:
     try:
         r.ping()  # Check connection
@@ -45,8 +63,10 @@ def extract_n_push_daily_schedule(target_date: str) -> bool:
         # Extract the daily schedule for the target date
         daily_schedule = get_day_schedule(schedule_text, target_date)
         if "No schedule found" in daily_schedule:
-            # print(daily_schedule)
-            return False
+            schedule_text = r.hget("weekSchedule", "previous_schedule_week")
+            daily_schedule = get_day_schedule(schedule_text, target_date)
+            if "No schedule found" in daily_schedule:
+                return False
 
         # Save the daily schedule to Redis
         pipe = r.pipeline()

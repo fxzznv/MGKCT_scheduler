@@ -16,6 +16,18 @@ def extract_week_schedule() -> str:
     # print(repr(schedule_week))
     return schedule_week
 
+def extract_previous_week_schedule() -> str:
+    """
+    Получение расписания недели из Redis (из хэша)
+    """
+    host = os.getenv('REDIS_HOST', 'localhost')
+    port = int(os.getenv('REDIS_PORT', 6379))
+    r = redis.Redis(host=host, port=port, db=0, decode_responses=True)
+
+    # Получаем значение из поля schedule_week хэша
+    schedule_week = r.hget("weekSchedule", "previous_schedule_week")
+    # print(repr(schedule_week))
+    return schedule_week
 
 def extract_daily_schedule() -> str:
     """

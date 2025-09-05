@@ -1,11 +1,13 @@
 import asyncio
 import logging
+import re
 from datetime import datetime, timedelta
 
 from aiogram import Bot
 from pytz import timezone
 
-from mgct_schedule.utils.rediss import push_weekly_schedule, extract_n_push_daily_schedule, get_all_chat_ids
+from mgct_schedule.utils.rediss import push_weekly_schedule, extract_n_push_daily_schedule, get_all_chat_ids, \
+    push_previous_weekly_schedule
 from mgct_schedule.utils.weekly_schedule import get_schedule
 from telegram_bot.schedule_extracting import extract_week_schedule
 
@@ -16,6 +18,19 @@ logger = logging.getLogger(__name__)
 # Токен вашего бота
 API_TOKEN = "8192247154:AAE2mFLGN__f9kA3IQYyJayZZEzodje_1i8"
 bot = Bot(token=API_TOKEN)
+
+
+def extract_monday_date(schedule_str: str) -> datetime:
+    # Regular expression to find "Понедельник - DD.MM.YYYY"
+    match = re.search(r'Понедельник - (\d{2}\.\d{2}\.\d{4})', schedule_str)
+    if match:
+        date_str = match.group(1)
+        try:
+            # Parse the date in DD.MM.YYYY format
+            return datetime.strptime(date_str, '%d.%m.%Y')
+        except ValueError:
+            return None
+    return None
 
 async def send_message_to_users(chat_ids, message_text):
     """Отправка сообщений всем пользователям по списку chat_id."""
@@ -52,10 +67,20 @@ async def run_scheduler():
                 push_weekly_schedule(actual_schedule)
                 logger.info("Пуш в Redis выполнен")
 
+                actual_monday = extract_monday_date(actual_schedule)
+                extracted_monday = extract_monday_date(extracted_schedule)
+                if actual_monday and extracted_monday:
+                    date_diff = actual_monday - extracted_monday
+                    if date_diff == timedelta(days=7):
+                        logger.info("Расписание на новую неделю")
+                        push_previous_weekly_schedule(extracted_schedule)
+                    else:
+                        logger.info(f"Разница в датах: {date_diff.days} дней")
+
                 chat_ids = get_all_chat_ids()
                 logger.info(f"Получены chat_ids: {chat_ids}")
                 if chat_ids:
-                    await send_message_to_users(chat_ids, "📢 <b>Получено измененное расписание</b>\n\nПроверьте новое расписание с помощью команды /start или кнопок.")
+                    await send_message_to_users(chat_ids, "📢 <b>Получено измененное расписание</b>")
                 else:
                     logger.warning("Список chat_ids пуст, сообщения не отправлены")
 
@@ -65,24 +90,29 @@ async def run_scheduler():
             logger.info(f"Ежедневное расписание для {today_str} обновлено")
             last_weekly_update = now
 
-        # 2. Обновление на следующий день в 17:00
-        if now.hour == 17 and now.minute < 5 and (last_next_day_update is None or last_next_day_update.date() != current_date):
-            logger.info(f"[{now}] Обновление расписания на следующий день")
+        if now.weekday() == 6:
             tomorrow = now + timedelta(days=1)
             tomorrow_str = tomorrow.strftime('%d.%m.%Y')
             extract_n_push_daily_schedule(tomorrow_str)
-            logger.info(f"Расписание на следующий день ({tomorrow_str}) обновлено")
-            last_next_day_update = now
+        else:
+            # 2. Обновление на следующий день в 17:00
+            if now.hour == 17 and now.minute < 5 and (last_next_day_update is None or last_next_day_update.date() != current_date):
+                logger.info(f"[{now}] Обновление расписания на следующий день")
+                tomorrow = now + timedelta(days=1)
+                tomorrow_str = tomorrow.strftime('%d.%m.%Y')
+                extract_n_push_daily_schedule(tomorrow_str)
+                logger.info(f"Расписание на следующий день ({tomorrow_str}) обновлено")
+                last_next_day_update = now
 
-        # 3. Сброс в 00:00: обновляем для текущего дня и сбрасываем флаг
-        if now.hour == 0 and now.minute < 5:
-            logger.info(f"[{now}] Сброс и обновление расписания на текущий день")
-            today_str = now.strftime('%d.%m.%Y')
-            extract_n_push_daily_schedule(today_str)
-            logger.info(f"Ежедневное расписание для {today_str} обновлено")
-            last_next_day_update = None  # Сброс для обновления на следующий день
+            # 3. Сброс в 00:00: обновляем для текущего дня и сбрасываем флаг
+            if now.hour == 0 and now.minute < 5:
+                logger.info(f"[{now}] Сброс и обновление расписания на текущий день")
+                today_str = now.strftime('%d.%m.%Y')
+                extract_n_push_daily_schedule(today_str)
+                logger.info(f"Ежедневное расписание для {today_str} обновлено")
+                last_next_day_update = None  # Сброс для обновления на следующий день
 
-        await asyncio.sleep(60)  # Проверяем каждую минуту
+            await asyncio.sleep(60)  # Проверяем каждую минуту
 
 async def main():
     try:
