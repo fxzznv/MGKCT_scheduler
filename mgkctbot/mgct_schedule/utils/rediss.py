@@ -104,10 +104,4 @@ def debug_extract_day_schedule():
         else:
             print("Не найдено регулярным выражением")
 if __name__ == "__main__":
-    debug_extract_day_schedule()
-
-    # Затем попробуйте извлечь
-    target_date = "04.09.2025"
-    success = extract_n_push_daily_schedule(target_date)
-    if success:
-        print(f"Successfully processed and saved schedule for {target_date}")
+    print(get_all_chat_ids())
